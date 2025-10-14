@@ -1,79 +1,46 @@
 const express = require('express');
-const multer = require('multer');
-const forge = require('node-forge');
+const https = require('https');
 
 const app = express();
 const LOGIN = "sfelshtyn";
 
-// Настройка multer для обработки multipart/form-data
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB лимит
-    },
+app.get('/login', (req, res) => {
+    res.type('text/plain').send(LOGIN);
 });
 
-// Маршрут для получения логина
-app.get("/login", (req, res) => {
-    res.type("text/plain").send(LOGIN);
-});
-
-// Маршрут для расшифровки
-app.post(
-    "/decypher",
-    upload.fields([
-        { name: "key", maxCount: 1 },
-        { name: "secret", maxCount: 1 },
-    ]),
-    (req, res) => {
-        try {
-            // Проверяем наличие файлов
-            if (!req.files && !req.files.key && !req.files.secret) {
-                return res
-                    .status(400)
-                    .type("text/plain")
-                    .send("Отсутствуют обязательные поля: key и secret");
-            }
-
-            const keyFile = req.files.key[0];
-            const secretFile = req.files.secret[0];
-
-            // Получаем содержимое приватного ключа
-            const privateKeyPem = keyFile.buffer.toString("utf8");
-
-            // Получаем зашифрованные данные
-            const encryptedData = secretFile.buffer;
-
-            // Парсим приватный ключ
-            const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-
-            // Расшифровываем данные
-            const decrypted = privateKey.decrypt(
-                encryptedData.toString("binary"),
-                "RSA-OAEP"
-            );
-
-            // Возвращаем результат как обычную строку
-            res.type("text/plain").send(decrypted);
-        } catch (error) {
-            console.error("Ошибка расшифровки:", error);
-            res
-                .status(400)
-                .type("text/plain")
-                .send(`Ошибка расшифровки: ${error.message}`);
+app.get('/id/:N', (req, res) => {
+    const N = req.params.N;
+    const options = {
+        hostname: 'nd.kodaktor.ru',
+        path: `/users/${N}`,
+        method: 'GET',
+        headers: {
+            // Content-Type заголовок отсутствует намеренно
         }
-    }
-);
+    };
 
-// Корневой маршрут
-app.get("/", (req, res) => {
-    res.type("text/plain").send("ok");
-});
+    https.get(options, (response) => {
+        let data = '';
 
-// Обработка ошибок
-app.use((err, req, res, next) => {
-    console.error("Ошибка сервера:", err);
-    res.status(500).type("text/plain").send("Внутренняя ошибка сервера");
+        response.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        response.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                if (json.login) {
+                    res.type('text/plain').send(json.login);
+                } else {
+                    res.status(404).send('Login field not found');
+                }
+            } catch (e) {
+                res.status(500).send('Ошибка обработки данных');
+            }
+        });
+    }).on('error', (err) => {
+        res.status(500).send('Ошибка запроса к удалённому серверу');
+    });
 });
 
 const PORT = process.env.PORT || 3000;
