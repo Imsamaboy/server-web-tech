@@ -11,11 +11,11 @@ const requestListener = function (req, res) {
             break
         }
         case "/hour": {
-            const d = new Date()
-            let time = d.getHours()
-            res.writeHead(200)
-            res.end(`${time}`)
-            break
+            const d = new Date();
+            const time = d.toLocaleTimeString("ru-RU", { timeZone: "Europe/Moscow", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            res.writeHead(200);
+            res.end(time);
+            break;
         }
     }
 }
