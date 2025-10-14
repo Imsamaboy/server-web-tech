@@ -12,7 +12,8 @@ const requestListener = function (req, res) {
         }
         case "/hour": {
             const d = new Date();
-            const time = d.toLocaleTimeString("ru-RU", { timeZone: "Europe/Moscow", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            const options = { timeZone: "Europe/Moscow", hour12: false, hour: "2-digit" };
+            const time = d.toLocaleTimeString("ru-RU", options).slice(0, 2);
             res.writeHead(200);
             res.end(time);
             break;
