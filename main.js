@@ -1,51 +1,41 @@
-// server.js
-const express = require('express');
+import express from 'express';
+import bodyParser from 'body-parser';
+
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Мидлвэр для парсинга JSON тела запроса
-app.use(express.json());
+// Middleware для парсинга JSON тела запроса
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Мидлвэр для CORS — разрешаем все методы и заголовки
+// Middleware для CORS на все маршруты
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET,POST,PUT,DELETE,OPTIONS'
-  );
-  res.header(
-    'Access-Control-Allow-Headers',
-    'x-test,ngrok-skip-browser-warning,Content-Type,Accept,Access-Control-Allow-Headers'
-  );
-
-  // Если это preflight-запрос (OPTIONS), сразу отвечаем 200
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-
-  next();
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        'x-test,ngrok-skip-browser-warning,Content-Type,Accept,Access-Control-Allow-Headers'
+    );
+    next();
 });
 
-// Маршрут /result4/
+// Основной маршрут
 app.all('/result4/', (req, res) => {
-  const xTest = req.header('x-test');     // достаем заголовок x-test из запроса
-  const body = req.body;                  // тело запроса
-  const xBody = JSON.stringify(body);     // превращаем в строку, чтобы вернуть
+    const xTestHeader = req.header('x-test') || null;
+    const xBody = req.body || null;
 
-  // Формируем JSON-ответ
-  const response = {
-    message: '99803203-b584-4d0c-a62e-0e9704ea6563',
-    'x-result': xTest || null,
-    'x-body': xBody || null
-  };
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+        message: '99803203-b584-4d0c-a62e-0e9704ea6563',
+        'x-result': xTestHeader,
+        'x-body': xBody
+    });
+});
 
-  // Устанавливаем Content-Type
-  res.setHeader('Content-Type', 'application/json');
-
-  res.status(200).json(response);
+// Любой другой маршрут
+app.all('*', (req, res) => {
+    res.send('Not Found');
 });
 
 // Запуск сервера
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT);
