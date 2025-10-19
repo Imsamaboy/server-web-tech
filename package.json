@@ -1,17 +1,15 @@
 {
   "name": "server-web-tech",
   "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
+  "description": "Простой HTTPS сервер возвращающий GUID и кастомные заголовки",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0",
-    "multer": "^2.0.2",
-    "node-forge": "^1.3.1"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14"
   }
 }

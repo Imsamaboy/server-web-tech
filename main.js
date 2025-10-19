@@ -1,49 +1,51 @@
+// server.js
 const express = require('express');
-const https = require('https');
-
 const app = express();
-const LOGIN = "sfelshtyn";
+const PORT = 3000;
 
-app.get('/login', (req, res) => {
-    res.type('text/plain').send(LOGIN);
+// Мидлвэр для парсинга JSON тела запроса
+app.use(express.json());
+
+// Мидлвэр для CORS — разрешаем все методы и заголовки
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,DELETE,OPTIONS'
+  );
+  res.header(
+    'Access-Control-Allow-Headers',
+    'x-test,ngrok-skip-browser-warning,Content-Type,Accept,Access-Control-Allow-Headers'
+  );
+
+  // Если это preflight-запрос (OPTIONS), сразу отвечаем 200
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
 });
 
-app.get('/id/:N', (req, res) => {
-    const N = req.params.N;
-    const options = {
-        hostname: 'nd.kodaktor.ru',
-        path: `/users/${N}`,
-        method: 'GET',
-        headers: {
-            // Content-Type заголовок отсутствует намеренно
-        }
-    };
+// Маршрут /result4/
+app.all('/result4/', (req, res) => {
+  const xTest = req.header('x-test');     // достаем заголовок x-test из запроса
+  const body = req.body;                  // тело запроса
+  const xBody = JSON.stringify(body);     // превращаем в строку, чтобы вернуть
 
-    https.get(options, (response) => {
-        let data = '';
+  // Формируем JSON-ответ
+  const response = {
+    message: '99803203-b584-4d0c-a62e-0e9704ea6563',
+    'x-result': xTest || null,
+    'x-body': xBody || null
+  };
 
-        response.on('data', (chunk) => {
-            data += chunk;
-        });
+  // Устанавливаем Content-Type
+  res.setHeader('Content-Type', 'application/json');
 
-        response.on('end', () => {
-            try {
-                const json = JSON.parse(data);
-                if (json.login) {
-                    res.type('text/plain').send(json.login);
-                } else {
-                    res.status(404).send('Login field not found');
-                }
-            } catch (e) {
-                res.status(500).send('Ошибка обработки данных');
-            }
-        });
-    }).on('error', (err) => {
-        res.status(500).send('Ошибка запроса к удалённому серверу');
-    });
+  res.status(200).json(response);
 });
 
-const PORT = process.env.PORT || 3000;
+// Запуск сервера
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
