@@ -1,7 +1,7 @@
 // server.js
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Мидлвэр для парсинга JSON тела запроса
 app.use(express.json());
