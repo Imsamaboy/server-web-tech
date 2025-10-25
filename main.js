@@ -1,46 +1,39 @@
-import express from "express";
-import mongoose from "mongoose";
-import bodyParser from "body-parser";
-import { Server } from "http";
+const express = require('express');
+const multer = require('multer');
+const sharp = require('sharp');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const upload = multer(); // сохраняем в оперативной памяти
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers":
-    "x-test,ngrok-skip-browser-warning,Content-Type,Accept,Access-Control-Allow-Headers",
-};
+const LOGIN = "sfelshtyn"; // заменить login
 
-const s = new Server((req, res) => {
-  if (req.url === "/result4/") {
-    let body = "";
-
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-
-    req.on("end", () => {
-      let parsedBody = body;
-
-      res.writeHead(200, "", { ...CORS });
-
-      res.write(
-        JSON.stringify({
-          message: "99803203-b584-4d0c-a62e-0e9704ea6563",
-          "x-result": req.headers["x-test"],
-          "x-body": String(parsedBody),
-        }),
-      );
-
-      res.end();
-    });
-
-    return;
-  }
-
-  res.end();
+app.get('/login', (req, res) => {
+    res.type('text/plain').send(LOGIN);
 });
 
-s.listen(PORT);
+// === Маршрут /size2json ===
+// Получает PNG изображение в поле image (multipart/form-data)
+app.post("/size2json", upload.single("image"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "Не передано поле image" });
+        }
+
+        // Используем sharp для получения размеров изображения
+        const metadata = await sharp(req.file.buffer).metadata();
+
+        res.json({
+            width: metadata.width,
+            height: metadata.height
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка обработки изображения" });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
