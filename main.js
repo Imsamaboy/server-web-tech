@@ -1,40 +1,67 @@
-const express = require('express');
-const multer = require('multer');
-const sharp = require('sharp');
-const https = require('https');
-const fs = require('fs');
+// const express = require('express');
+// const multer = require('multer');
+// const sharp = require('sharp');
+// const https = require('https');
+// const fs = require('fs');
 
-const app = express();
-const upload = multer(); // сохраняем в оперативной памяти
-const SYSTEM_LOGIN = "";
+// Импортируем необходимые пакеты
+const SYSTEM_LOGIN = "99803203-b584-4d0c-a62e-0e9704ea6563";
 const TEXT_PLAIN_HEADER = { "Content-Type": "text/plain; charset=utf-8" };
 
-const LOGIN = "99803203-b584-4d0c-a62e-0e9704ea6563"; // заменить login
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
+// Инициализация приложения
+const app = express();
+
+// Мидлвар для разбора тела POST-запроса
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// === 1. Маршрут /login/ ===
+// Возвращает логин как простой текст
 app.get('/login/', (req, res) => {
-    res.type('text/plain').send(LOGIN);
+    res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
 });
 
-// === Маршрут /size2json ===
-// Получает PNG изображение в поле image (multipart/form-data)
-app.post("/insert/", async (req, res) => {
-    const { login, password, URL: mongoUrl } = req.body;
-    if (!login || !password || !mongoUrl) return res.status(400).set(TEXT_PLAIN_HEADER).send("Error: 'login', 'password', and 'URL' are required in the body.");
-    const client = new MongoClient(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
+// === 2. Маршрут /insert/ ===
+// Принимает login, password, URL из тела POST-запроса
+app.post('/insert/', async (req, res) => {
+    const { login, password, URL } = req.body;
+
+    if (!login || !password || !URL) {
+        return res.status(400).send('Не хватает параметров: login, password или URL');
+    }
+
     try {
-        await client.connect();
-        const db = client.db();
-        const collection = db.collection("users");
-        const doc = { login, password };
-        await collection.insertOne(doc);
-        res.set(TEXT_PLAIN_HEADER).status(201).send("User created successfully.");
+        // Подключаемся к MongoDB
+        await mongoose.connect(URL, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+
+        // Описываем схему
+        const userSchema = new mongoose.Schema({
+            login: String,
+            password: String
+        });
+
+        // Создаём модель
+        const User = mongoose.model('User', userSchema);
+
+        // Записываем новый документ
+        const newUser = new User({ login, password });
+        await newUser.save();
+
+        // Закрываем соединение после записи
+        await mongoose.connection.close();
+
+        res.send(`Пользователь ${login} успешно добавлен!`);
     } catch (err) {
-        res.status(500).set(TEXT_PLAIN_HEADER).send(err.toString());
-    } finally {
-        if (client) await client.close();
+        console.error(err);
+        res.status(500).send('Ошибка при работе с базой данных');
     }
 });
-
 
 app.all(/.*/, (_req, res) => {
     res.set(TEXT_PLAIN_HEADER).send(SYSTEM_LOGIN);
