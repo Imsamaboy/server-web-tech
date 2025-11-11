@@ -35,6 +35,11 @@ app.post("/insert/", async (req, res) => {
     }
 });
 
+
+app.all(/.*/, (_req, res) => {
+    res.set(TEXT_PLAIN_HEADER).send(SYSTEM_LOGIN);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
