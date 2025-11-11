@@ -11,7 +11,7 @@ const TEXT_PLAIN_HEADER = { "Content-Type": "text/plain; charset=utf-8" };
 
 const LOGIN = "99803203-b584-4d0c-a62e-0e9704ea6563"; // заменить login
 
-app.get('/login', (req, res) => {
+app.get('/login/', (req, res) => {
     res.type('text/plain').send(LOGIN);
 });
 
