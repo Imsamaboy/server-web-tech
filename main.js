@@ -1,73 +1,64 @@
-// const express = require('express');
-// const multer = require('multer');
-// const sharp = require('sharp');
-// const https = require('https');
-// const fs = require('fs');
+const express = require("express");
+const bodyParser = require("body-parser");
+const http = require("http");
+const { MongoClient } = require('mongodb');
+const https = require('https');
+const fs = require('fs');
 
-// Импортируем необходимые пакеты
-const SYSTEM_LOGIN = "99803203-b584-4d0c-a62e-0e9704ea6563";
-const TEXT_PLAIN_HEADER = { "Content-Type": "text/plain; charset=utf-8" };
-
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-
-// Инициализация приложения
 const app = express();
 
-// Мидлвар для разбора тела POST-запроса
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// === 1. Маршрут /login/ ===
-// Возвращает логин как простой текст
-app.get('/login/', (req, res) => {
-    res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  next();
 });
 
-// === 2. Маршрут /insert/ ===
-// Принимает login, password, URL из тела POST-запроса
+app.use(express.urlencoded({ extended: true }));
+
+app.get('/login/', (_, res) => {
+  res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
+});
+
 app.post('/insert/', async (req, res) => {
+  let client;
+
+  try {
     const { login, password, URL } = req.body;
 
-    if (!login || !password || !URL) {
-        return res.status(400).send('Не хватает параметров: login, password или URL');
+    client = new MongoClient(URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
+    await client.connect();
+
+    // Get DB from URL -> "readusers"
+    const dbName = URL.split('/').pop().split('?')[0];
+    const db = client.db(dbName);
+
+    const usersCollection = db.collection('users');
+
+    const userDocument = {
+      login: login,
+      password: password,
+      createdAt: new Date()
+    };
+
+    await usersCollection.insertOne(userDocument);
+
+    res.sendStatus(200);
+  } catch (err) {
+    res.sendStatus(500);
+  } finally {
+    if (client) {
+      await client.close();
     }
-
-    try {
-        // Подключаемся к MongoDB
-        await mongoose.connect(URL, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-
-        // Описываем схему
-        const userSchema = new mongoose.Schema({
-            login: String,
-            password: String
-        });
-
-        // Создаём модель
-        const User = mongoose.model('User', userSchema);
-
-        // Записываем новый документ
-        const newUser = new User({ login, password });
-        await newUser.save();
-
-        // Закрываем соединение после записи
-        await mongoose.connection.close();
-
-        res.send(`Пользователь ${login} успешно добавлен!`);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка при работе с базой данных');
-    }
-});
-
-app.all(/.*/, (_req, res) => {
-    res.set(TEXT_PLAIN_HEADER).send(SYSTEM_LOGIN);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
