@@ -1,8 +1,6 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const http = require("http");
-const { MongoClient } = require('mongodb');
+const express = require('express');
 const puppeteer = require('puppeteer');
+
 const https = require('https');
 const fs = require('fs');
 
@@ -22,31 +20,37 @@ app.get('/login/', (_, res) => {
 });
 
 app.get('/test/', async (req, res) => {
-  const url = req.query.URL;
-  if (!url) {
-    return res.status(400).send('URL is required');
-  }
+  const targetURL = req.query.URL;
 
-  try {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.goto(url);
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    executablePath: '/usr/bin/chromium-browser', // Путь до chromium в системе
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] // Эта строка добавлена для моего VPS на Ubuntu 24.04
+  })
 
-    // Кликаем по кнопке с id="bt"
-    await page.click('#bt');
+  // const browser = await puppeteer.launch({
+  //   headless: true,
+  //   executablePath: 'C:\\Program Files\\Chromium\\chrome.exe',
+  //   args: ['--no-sandbox', '--disable-setuid-sandbox']
+  // });
 
-    // Ждем появления числа в поле ввода с id="inp"
-    await page.waitForSelector('#inp');
+  const page = await browser.newPage();
+  await page.goto(targetURL, { waitUntil: 'networkidle2' });
 
-    const value = await page.$eval('#inp', el => el.value);
+  await page.click('#bt');
 
-    await browser.close();
+  await page.waitForFunction(() => {
+    const input = document.querySelector('#inp');
+    return input.value;
+  }, { timeout: 1000 });
 
-    res.type('text/plain').send(value);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error processing the page');
-  }
+  const result = await page.evaluate(() => {
+    return document.querySelector('#inp').value;
+  });
+
+  await browser.close();
+
+  res.send(result);
 });
 
 const PORT = process.env.PORT || 3000;
