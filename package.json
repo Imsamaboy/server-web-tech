@@ -1,7 +1,7 @@
 {
   "name": "server-web-tech",
   "version": "1.0.0",
-  "description": "Простой HTTPS сервер возвращающий GUID и кастомные заголовки",
+  "description": "Простой HTTPS сервер",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
@@ -9,8 +9,6 @@
   "dependencies": {
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
-    "mongoose": "^5.8.11",
-    "mongodb": "^3.4.0",
     "puppeteer": "^21.3.8"
   },
   "engines": {
