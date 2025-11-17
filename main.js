@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const http = require("http");
 const { MongoClient } = require('mongodb');
+const puppeteer = require('puppeteer');
 const https = require('https');
 const fs = require('fs');
 
@@ -20,40 +21,31 @@ app.get('/login/', (_, res) => {
   res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
 });
 
-app.post('/insert/', async (req, res) => {
-  let client;
+app.get('/test/', async (req, res) => {
+  const url = req.query.URL;
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
 
   try {
-    const { login, password, URL } = req.body;
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(url);
 
-    client = new MongoClient(URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    // Кликаем по кнопке с id="bt"
+    await page.click('#bt');
 
-    await client.connect();
+    // Ждем появления числа в поле ввода с id="inp"
+    await page.waitForSelector('#inp');
 
-    // Get DB from URL -> "readusers"
-    const dbName = URL.split('/').pop().split('?')[0];
-    const db = client.db(dbName);
+    const value = await page.$eval('#inp', el => el.value);
 
-    const usersCollection = db.collection('users');
+    await browser.close();
 
-    const userDocument = {
-      login: login,
-      password: password,
-      createdAt: new Date()
-    };
-
-    await usersCollection.insertOne(userDocument);
-
-    res.sendStatus(200);
+    res.type('text/plain').send(value);
   } catch (err) {
-    res.sendStatus(500);
-  } finally {
-    if (client) {
-      await client.close();
-    }
+    console.error(err);
+    res.status(500).send('Error processing the page');
   }
 });
 
