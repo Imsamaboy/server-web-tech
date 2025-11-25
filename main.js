@@ -1,12 +1,5 @@
 const express = require('express');
-const axios = require('axios');
-const pug = require('pug');
-const https = require('https');
-const fs = require('fs');
-
-const express = require('express');
 const puppeteer = require('puppeteer');
-
 const https = require('https');
 const fs = require('fs');
 
