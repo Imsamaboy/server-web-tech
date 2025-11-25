@@ -1,5 +1,6 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
+
 const https = require('https');
 const fs = require('fs');
 
@@ -19,6 +20,7 @@ app.get('/login/', (_, res) => {
 app.get('/test/', async (req, res) => {
     const targetURL = req.query.URL;
 
+    // TODO: Заранее установить в систему chromium
     const browser = await puppeteer.launch({
         headless: 'new',
         executablePath: '/usr/bin/chromium-browser', // Путь до chromium в системе
@@ -44,8 +46,13 @@ app.get('/test/', async (req, res) => {
     res.send(result);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 443;
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+const options = {
+    key: fs.readFileSync('E:\\java\\server-web-tech\\privkey.pem'),
+    cert: fs.readFileSync('E:\\java\\server-web-tech\\fullchain.pem')
+};
+
+const server = https.createServer(options, app);
+
+server.listen(PORT);
