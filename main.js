@@ -1,37 +1,51 @@
 const express = require('express');
-const sharp = require('sharp');
+const puppeteer = require('puppeteer');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 
-app.get('/makeimage', (req, res) => {
-  const width = parseInt(req.query.width, 10) || 100;
-  const height = parseInt(req.query.height, 10) || 100;
-
-  sharp({
-    create: {
-      width: width,
-      height: height,
-      channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 1 }
-    }
-  })
-      .png()
-      .toBuffer((err, data) => {
-        if (err) {
-          return res.status(500).send('Error generating image');
-        }
-        res.set('Content-Type', 'image/png');
-        res.send(data);
-      });
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    next();
 });
 
-app.get('/login', (req, res) => {
-  const login = 'sfelshtyn';
-  res.send(login);
+app.get('/login/', (_, res) => {
+    res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
+});
+
+app.get('/test/', async (req, res) => {
+    const targetURL = req.query.URL;
+
+    const browser = await puppeteer.launch({
+        headless: 'new',
+        executablePath: '/usr/bin/chromium-browser', // Путь до chromium в системе
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Эта строка добавлена для моего VPS на Ubuntu 24.04
+    })
+
+    const page = await browser.newPage();
+    await page.goto(targetURL, { waitUntil: 'networkidle2' });
+
+    await page.click('#bt');
+
+    await page.waitForFunction(() => {
+        const input = document.querySelector('#inp');
+        return input.value;
+    }, { timeout: 1000 });
+
+    const result = await page.evaluate(() => {
+        return document.querySelector('#inp').value;
+    });
+
+    await browser.close();
+
+    res.send(result);
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
