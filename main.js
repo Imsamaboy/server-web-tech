@@ -1,8 +1,10 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
-
+const axios = require('axios');
+const pug = require('pug');
 const https = require('https');
 const fs = require('fs');
+
+const login = '99803203-b584-4d0c-a62e-0e9704ea6563';
 
 const app = express();
 
@@ -13,48 +15,41 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.urlencoded({ extended: true }));
-
 app.get('/login/', (_, res) => {
-  res.send('99803203-b584-4d0c-a62e-0e9704ea6563');
+  res.send(login);
 });
 
-app.get('/test/', async (req, res) => {
-  const targetURL = req.query.URL;
-
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    executablePath: '/usr/bin/chromium-browser', // Путь до chromium в системе
-    args: ['--no-sandbox', '--disable-setuid-sandbox'] // Эта строка добавлена для моего VPS на Ubuntu 24.04
-  })
-
-  // const browser = await puppeteer.launch({
-  //   headless: true,
-  //   executablePath: 'C:\\Program Files\\Chromium\\chrome.exe',
-  //   args: ['--no-sandbox', '--disable-setuid-sandbox']
-  // });
-
-  const page = await browser.newPage();
-  await page.goto(targetURL, { waitUntil: 'networkidle2' });
-
-  await page.click('#bt');
-
-  await page.waitForFunction(() => {
-    const input = document.querySelector('#inp');
-    return input.value;
-  }, { timeout: 1000 });
-
-  const result = await page.evaluate(() => {
-    return document.querySelector('#inp').value;
+app.get('/wordpress/wp-json/wp/v2/posts/1', (_, res) => {
+  res.json({
+    id: 1,
+    slug: login,
+    title: {
+      rendered: login
+    },
+    content: {
+      rendered: "",
+      protected: false
+    }
   });
+});
 
-  await browser.close();
+app.use(express.json());
 
-  res.send(result);
+app.post('/render/', async (req, res) => {
+  const { random2, random3 } = req.body;
+  const { addr } = req.query;
+
+  const templateResponse = await axios.get(addr);
+  const pugTemplate = templateResponse.data;
+
+  const compiled = pug.compile(pugTemplate);
+  const html = compiled({ random2, random3 });
+
+  res.set('Content-Type', 'text/html');
+  res.send(html);
 });
 
 const PORT = process.env.PORT || 3000;
+const server = https.createServer(app);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+server.listen(PORT);
