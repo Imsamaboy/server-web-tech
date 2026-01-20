@@ -1,4 +1,3 @@
-// main.js
 const express = require("express");
 const puppeteer = require("puppeteer");
 
@@ -6,22 +5,19 @@ const app = express();
 
 const LOGIN = "sfelshtyn";
 const TARGET = "https://kodaktor.ru/g/d7290da";
-
 const PORT = process.env.PORT || 3000;
 
 let browserPromise = null;
 
 async function getBrowser() {
     if (!browserPromise) {
-        browserPromise = puppeteer
-            .launch({
-                headless: true,
-                args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            })
-            .catch((e) => {
-                browserPromise = null;
-                throw e;
-            });
+        browserPromise = puppeteer.launch({
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        }).catch((e) => {
+            browserPromise = null;
+            throw e;
+        });
     }
     return browserPromise;
 }
@@ -49,7 +45,7 @@ function extractNumber(req) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function tryTypeNumber(page, n) {
-    const selectors = ["input[type=\"number\"]", "input[type=\"text\"]", "input:not([type])"];
+    const selectors = ['input[type="number"]', 'input[type="text"]', "input:not([type])"];
     for (const sel of selectors) {
         const el = await page.$(sel);
         if (el) {
@@ -64,9 +60,9 @@ async function tryTypeNumber(page, n) {
 async function tryClickButton(page) {
     const selectors = [
         "button",
-        "input[type=\"button\"]",
-        "input[type=\"submit\"]",
-        "[role=\"button\"]",
+        'input[type="button"]',
+        'input[type="submit"]',
+        '[role="button"]',
         "#btn",
         "#button",
         "#go",
@@ -76,10 +72,8 @@ async function tryClickButton(page) {
     for (const sel of selectors) {
         const el = await page.$(sel);
         if (el) {
-            await Promise.race([
-                page.waitForNavigation({ waitUntil: "networkidle2", timeout: 4000 }).catch(() => null),
-                el.click().catch(() => null),
-            ]);
+            await el.click().catch(() => null);
+            await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 4000 }).catch(() => null);
             return true;
         }
     }
@@ -93,18 +87,14 @@ async function readResultFromPage(page) {
 
     const h1 = await page.$("h1");
     if (h1) {
-        const t = await page
-            .$eval("h1", (el) => (el.textContent || "").trim())
-            .catch(() => "");
+        const t = await page.$eval("h1", (el) => (el.textContent || "").trim()).catch(() => "");
         if (t) return t;
     }
 
     for (const sel of ["#out", "#result", "output", "pre", "h2", "h3"]) {
         const el = await page.$(sel);
         if (el) {
-            const t = await page
-                .$eval(sel, (e) => (e.textContent || "").trim())
-                .catch(() => "");
+            const t = await page.$eval(sel, (e) => (e.textContent || "").trim()).catch(() => "");
             if (t) return t;
         }
     }
@@ -137,7 +127,7 @@ app.get("/login", (req, res) => {
     res.type("text/plain").send(LOGIN);
 });
 
-app.get("/zombie/:n?", async (req, res) => {
+async function zombieHandler(req, res) {
     const n = extractNumber(req);
     if (n === null) {
         res.status(400).type("text/plain").send("Bad number");
@@ -151,11 +141,13 @@ app.get("/zombie/:n?", async (req, res) => {
         console.error(e);
         res.status(500).type("text/plain").send("Zombie error");
     }
-});
+}
 
-app.listen(PORT, () => {
-    console.log(`Listening on ${PORT}`);
-});
+// ВАЖНО: без "/zombie/:n?" чтобы не падать на Express 5
+app.get("/zombie", zombieHandler);
+app.get("/zombie/:n", zombieHandler);
+
+app.listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
     process.on(sig, async () => {
